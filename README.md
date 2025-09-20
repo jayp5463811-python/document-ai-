@@ -8,7 +8,7 @@
 
 You can access the live, deployed application here:
 
-**[https://jwuzzyv4wawfvmchnucwnx.streamlit.app](https://jwuzzyv4wawfvmchnucwnx.streamlit.app)**
+**[https://jwuzzyv4wawfwmvthnucwnx.streamlit.app](https://jwuzzyv4wawfwmvthnucwnx.streamlit.app)**
 
 ---
 
