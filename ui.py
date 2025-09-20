@@ -10,7 +10,7 @@ st.title("📄 Document AI Prototype with Gemini")
 # and configures the Google AI library.
 import google.generativeai as genai
 try:
-    genai.configure(api_key=st.secrets["AIzaSyDG2QqJCeKF3X4_nhLZkxdIb5qdeXBR7xU"])
+    genai.configure(api_key=st.secrets["AIzaSyCldcYxHTI7pL-MxIOhg2QfkPR8ayHHEbw"])
 except Exception:
     st.error("API Key not found or configured incorrectly. Please add your GOOGLE_API_KEY to your Streamlit secrets.")
     st.stop() # Stops the app if the key is missing.
