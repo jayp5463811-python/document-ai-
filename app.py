@@ -3,14 +3,8 @@ from pdf2image import convert_from_path
 import base64
 import io
 
-# --- CONFIGURE YOUR API KEY ---
-# Best practice: Load from environment variables, not hardcoded
-# from dotenv import load_dotenv
-# import os
-# load_dotenv()
-# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key="YOUR_GOOGLE_API_KEY")
-
+# NOTICE: The genai.configure(api_key=...) line has been removed from this file.
+# This is because ui.py now handles the API key securely.
 
 def prepare_document_for_gemini(file_path, mime_type):
     """
@@ -66,14 +60,3 @@ def ask_gemini_about_document(prompt, file_path, mime_type):
     except Exception as e:
         print(f"An error occurred: {e}")
         return f"Error processing the document: {str(e)}"
-
-# Example Usage (for testing)
-# if __name__ == '__main__':
-#     # Make sure you have a test file named 'test.pdf' or 'test.png'
-#     result = ask_gemini_about_document(
-#         prompt="Summarize this document in three bullet points.",
-#         file_path="test.pdf",
-#         mime_type="application/pdf"
-#     )
-#     print("\n--- Gemini Response ---")
-#     print(result)
