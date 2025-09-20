@@ -6,24 +6,29 @@ import google.generativeai as genai
 st.set_page_config(layout="wide")
 st.title("📄 Document AI Prototype with Gemini")
 
-# --- NEW DEBUGGING SECTION ---
-# This code will check if the secret is available and tell us.
+# --- FINAL, MORE DETAILED DEBUGGING SECTION ---
 st.subheader("⚙️ Debug Information")
-if "GOOGLE_API_KEY" in st.secrets:
-    st.success("✅ Secret key was FOUND by the app.")
-else:
-    st.error("❌ Secret key was NOT FOUND by the app.")
-    st.info("This means the name in your app's 'Secrets' settings is probably wrong. It must be exactly GOOGLE_API_KEY.")
-    st.stop() # Stop the app here if the key isn't found.
+try:
+    # Step 1: Try to get the key from secrets.
+    api_key_value = st.secrets["AIzaSyCldcYxHTI7pL-MxIOhg2QfkPR8ayHHEbw"]
+    st.success("✅ Step 1: Secret key named 'GOOGLE_API_KEY' was FOUND.")
+    
+    # Step 2: Display a part of the key for you to verify.
+    # This helps confirm you pasted the correct value without showing the whole key.
+    st.info(f"Step 2: Key value found starts with '{api_key_value[:5]}' and ends with '{api_key_value[-4:]}'. Please check if this matches your real key.")
+
+    # Step 3: Try to configure the Google AI library with the key we found.
+    genai.configure(api_key=api_key_value)
+    st.success("✅ Step 3: Google AI configured successfully! Your app should now work below.")
+
+except KeyError:
+    st.error("❌ A 'KeyError' occurred. This means the secret's NAME is still wrong in your Streamlit settings. It must be exactly `GOOGLE_API_KEY`.")
+    st.stop()
+except Exception as e:
+    st.error(f"❌ An unexpected error occurred during configuration: {e}")
+    st.stop()
 # --- END OF DEBUGGING SECTION ---
 
-# --- Configure the API using the secret ---
-try:
-    genai.configure(api_key=st.secrets["AIzaSyCldcYxHTI7pL-MxIOhg2QfkPR8ayHHEbw"])
-    st.success("✅ Google AI configured successfully!")
-except Exception as e:
-    st.error(f"An error occurred when trying to configure the API: {e}")
-    st.stop()
 
 # --- The rest of your app's user interface ---
 st.subheader("💬 Ask Your Document a Question")
