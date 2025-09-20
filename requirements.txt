@@ -1,4 +1,5 @@
-streamlit
 google-generativeai
-pypdf
-pandas
+pdf2image
+Pillow
+python-dotenv
+# Add Flask or Streamlit later
