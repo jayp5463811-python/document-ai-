@@ -24,7 +24,8 @@ except (FileNotFoundError, KeyError):
 @st.cache_data
 def load_data(file_path):
     if not os.path.exists(file_path):
-        st.error(f"🚨 Error: The dataset file '{file_path}' was not found. Please run 'python dataset.py' first.")
+        # This error will only show when running locally if my_data.csv is missing
+        st.error(f"🚨 Error: The dataset file '{file_path}' was not found.")
         return None
     return pd.read_csv(file_path)
 
@@ -44,7 +45,7 @@ def get_gemini_response(prompt):
         return response.text
     except Exception as e:
         st.error(f"🧠 An error occurred with the AI model: {e}")
-        return None # Return None on error
+        return None
 
 def find_relevant_context(query, dataframe, column_name):
     if dataframe is None or column_name not in dataframe.columns:
@@ -59,6 +60,7 @@ def find_relevant_context(query, dataframe, column_name):
     return "\n".join(relevant_rows)
 
 # --- UI & APP LOGIC ---
+# For Streamlit Cloud, the file path will be relative to the root
 df = load_data('my_data.csv')
 
 st.title("📄 GenAI Document Analyzer")
@@ -85,53 +87,35 @@ if analyze_button and uploaded_file is not None:
     with st.spinner("Analyzing your document..."):
         document_text = extract_text_from_pdf(uploaded_file)
         
-        if document_text:
+        # --- FINAL FIX: Check if text was actually extracted ---
+        if document_text and document_text.strip():
             final_prompt = ""
             if analysis_type == "💡 Ask with Custom Data" and user_question:
-                # --- START DEBUGGING ---
-                st.info("Searching for context in custom data...")
                 relevant_info = find_relevant_context(user_question, df, 'Searchable_Details')
-                
-                if relevant_info:
-                    st.success(f"Found context for '{user_question}'!")
-                    with st.expander("See context found"):
-                        st.text(relevant_info)
-                else:
-                    st.warning(f"Could not find any context for '{user_question}' in the custom data.")
-                # --- END DEBUGGING ---
-
                 final_prompt = f"""You are an AI assistant. Answer the user's QUESTION using the DOCUMENT TEXT and the CUSTOM KNOWLEDGE BASE provided below. Prioritize information from the knowledge base if it's relevant.
-
                 ---CUSTOM KNOWLEDGE BASE---
                 {relevant_info}
-                
                 ---DOCUMENT TEXT---
                 {document_text}
-
                 ---QUESTION---
-                {user_question}
-                """
-            # (Other analysis types remain the same)
+                {user_question}"""
             elif analysis_type == "📝 Concise Summary":
                 final_prompt = f"Provide a concise, easy-to-read summary of the following document:\n\n{document_text}"
             elif analysis_type == "🔑 Key Topics":
                 final_prompt = f"List the top 5-7 key topics or themes from the following document in a bulleted list:\n\n{document_text}"
 
             if final_prompt:
-                st.info("Sending request to the AI model...")
                 analysis_result = get_gemini_response(final_prompt)
-                
-                # --- START DEBUGGING ---
                 if analysis_result is not None and analysis_result.strip():
-                    st.success("Received a valid response from the AI!")
                     st.subheader("✨ Analysis Results")
                     st.markdown(analysis_result)
-                elif analysis_result is not None:
-                    st.error("🚨 The AI returned a blank response. This can happen due to safety filters or the content of the PDF. Please try a different PDF.")
                 else:
-                    # This happens if get_gemini_response returned None due to an exception
-                    st.error("🚨 Failed to get a response from the AI model. Please check the error message above.")
-                # --- END DEBUGGING ---
+                    st.error("🚨 The AI returned a blank or invalid response. This can happen due to safety filters or the content of the PDF.")
+            elif analysis_type == "💡 Ask with Custom Data":
+                st.warning("Please ask a question to use this feature.")
+        else:
+            # --- FINAL FIX: Show an error if no text is found ---
+            st.error("🚨 Could not extract any text from the uploaded PDF. Please try a different, text-based PDF file (not a scan or image).")
 
 else:
     st.info("Please upload a document and select an analysis option from the sidebar.")
