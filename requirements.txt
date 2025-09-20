@@ -1,5 +1,5 @@
 google-generativeai
+streamlit
 pdf2image
 Pillow
 python-dotenv
-# Add Flask or Streamlit later
