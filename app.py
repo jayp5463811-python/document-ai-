@@ -31,7 +31,7 @@ def load_data(file_path):
 def extract_text_from_pdf(pdf_file):
     try:
         pdf_reader = pypdf.PdfReader(pdf_file)
-        text = "".join(page.extract_text() for page in pdf_reader.pages)
+        text = "".join(page.extract_text() for page in pdf_reader.pages if page.extract_text())
         return text
     except Exception as e:
         st.error(f"⚠️ Error reading PDF file: {e}")
@@ -44,7 +44,7 @@ def get_gemini_response(prompt):
         return response.text
     except Exception as e:
         st.error(f"🧠 An error occurred with the AI model: {e}")
-        return "Sorry, I couldn't process the request. Please check your API key and model configuration."
+        return None # Return None on error
 
 def find_relevant_context(query, dataframe, column_name):
     if dataframe is None or column_name not in dataframe.columns:
@@ -61,11 +61,9 @@ def find_relevant_context(query, dataframe, column_name):
 # --- UI & APP LOGIC ---
 df = load_data('my_data.csv')
 
-# --- HEADER ---
 st.title("📄 GenAI Document Analyzer")
 st.markdown("Upload a document, ask questions, and get instant insights powered by Google Gemini.")
 
-# --- SIDEBAR ---
 with st.sidebar:
     st.header("📤 Upload Your Document")
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf", label_visibility="collapsed")
@@ -83,21 +81,25 @@ with st.sidebar:
 
     analyze_button = st.button("Analyze Document", type="primary", use_container_width=True)
 
-# --- MAIN CONTENT AREA ---
 if analyze_button and uploaded_file is not None:
-    with st.spinner("Analyzing your document... This may take a moment..."):
+    with st.spinner("Analyzing your document..."):
         document_text = extract_text_from_pdf(uploaded_file)
         
         if document_text:
             final_prompt = ""
-            if analysis_type == "📝 Concise Summary":
-                final_prompt = f"Provide a concise, easy-to-read summary of the following document:\n\n{document_text}"
-            
-            elif analysis_type == "🔑 Key Topics":
-                final_prompt = f"List the top 5-7 key topics or themes from the following document in a bulleted list:\n\n{document_text}"
-            
-            elif analysis_type == "💡 Ask with Custom Data" and user_question:
+            if analysis_type == "💡 Ask with Custom Data" and user_question:
+                # --- START DEBUGGING ---
+                st.info("Searching for context in custom data...")
                 relevant_info = find_relevant_context(user_question, df, 'Searchable_Details')
+                
+                if relevant_info:
+                    st.success(f"Found context for '{user_question}'!")
+                    with st.expander("See context found"):
+                        st.text(relevant_info)
+                else:
+                    st.warning(f"Could not find any context for '{user_question}' in the custom data.")
+                # --- END DEBUGGING ---
+
                 final_prompt = f"""You are an AI assistant. Answer the user's QUESTION using the DOCUMENT TEXT and the CUSTOM KNOWLEDGE BASE provided below. Prioritize information from the knowledge base if it's relevant.
 
                 ---CUSTOM KNOWLEDGE BASE---
@@ -109,16 +111,27 @@ if analyze_button and uploaded_file is not None:
                 ---QUESTION---
                 {user_question}
                 """
-            
+            # (Other analysis types remain the same)
+            elif analysis_type == "📝 Concise Summary":
+                final_prompt = f"Provide a concise, easy-to-read summary of the following document:\n\n{document_text}"
+            elif analysis_type == "🔑 Key Topics":
+                final_prompt = f"List the top 5-7 key topics or themes from the following document in a bulleted list:\n\n{document_text}"
+
             if final_prompt:
+                st.info("Sending request to the AI model...")
                 analysis_result = get_gemini_response(final_prompt)
                 
-                st.subheader("✨ Analysis Results")
-                st.markdown(analysis_result)
+                # --- START DEBUGGING ---
+                if analysis_result is not None and analysis_result.strip():
+                    st.success("Received a valid response from the AI!")
+                    st.subheader("✨ Analysis Results")
+                    st.markdown(analysis_result)
+                elif analysis_result is not None:
+                    st.error("🚨 The AI returned a blank response. This can happen due to safety filters or the content of the PDF. Please try a different PDF.")
+                else:
+                    # This happens if get_gemini_response returned None due to an exception
+                    st.error("🚨 Failed to get a response from the AI model. Please check the error message above.")
+                # --- END DEBUGGING ---
 
-                with st.expander("See details: Extracted Text & Context"):
-                    st.text_area("Extracted Text from PDF", value=document_text, height=250, disabled=True)
-            elif analysis_type == "💡 Ask with Custom Data":
-                st.warning("Please ask a question to use this feature.")
 else:
     st.info("Please upload a document and select an analysis option from the sidebar.")
