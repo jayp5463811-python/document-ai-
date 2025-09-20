@@ -10,7 +10,7 @@ st.title("📄 Document AI Prototype with Gemini")
 st.subheader("⚙️ Debug Information")
 try:
     # Step 1: Try to get the key from secrets.
-    api_key_value = st.secrets["AIzaSyCldcYxHTI7pL-MxIOhg2QfkPR8ayHHEbw"]
+    GOOGLE_API_KEY = st.secrets["AIzaSyCldcYxHTI7pL-MxIOhg2QfkPR8ayHHEbw"]
     st.success("✅ Step 1: Secret key named 'GOOGLE_API_KEY' was FOUND.")
     
     # Step 2: Display a part of the key for you to verify.
