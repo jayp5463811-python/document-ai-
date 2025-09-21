@@ -13,13 +13,10 @@ st.set_page_config(
 )
 
 # --- API CONFIGURATION ---
-try:
-    GOOGLE_API_KEY = st.secrets["AIzaSyBxpRh79rp0ThZqkEaB4wSkBcOwT_JA4Ig"]
-    genai.configure(api_key=GOOGLE_API_KEY)
-except (FileNotFoundError, KeyError):
-    st.error("🚨 API Key not found! Please add it to your Streamlit secrets.")
-    st.stop()
-
+# --- API CONFIGURATION (Hardcoded for Hackathon) ---
+# ⚠️ WARNING: Your key is public here. Delete this key after the hackathon.
+GOOGLE_API_KEY = "AIzaSyBxpRh79rp0ThZqkEaB4wSkBcOwT_JA4Ig"
+genai.configure(api_key=GOOGLE_API_KEY)
 # --- HELPER FUNCTIONS ---
 @st.cache_data
 def load_data(file_path):
