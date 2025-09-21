@@ -16,7 +16,7 @@ print("--- Script Starting ---")
 # --- Step 2: Configure API Key ---
 print("-> Loading API Key...")
 load_dotenv()
-API_KEY = os.getenv("AIzaSyAjk_X7L9LWPEHvxQ7rVkEq4rylABuuAng")
+API_KEY = os.getenv("AIzaSyBxpRh79rp0ThZqkEaB4wSkBcOwT_JA4Ig")
 
 if not API_KEY:
     print("❌ ERROR: API Key not found.")
