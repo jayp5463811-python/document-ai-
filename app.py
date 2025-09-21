@@ -1,51 +1,69 @@
 import google.generativeai as genai
-from pdf2image import convert_from_path
 import base64
 import io
 import os
 from dotenv import load_dotenv
 
-# --- IMPORTANT: CONFIGURE YOUR API KEY ---
-# For security, it's best to load your key from a .env file.
-# 1. Create a file named .env in the same folder.
-# 2. In that file, write: GOOGLE_API_KEY="YOUR_KEY_HERE"
-# 3. This code will then load it securely.
+# --- Step 1: Try to import the PDF library ---
+try:
+    from pdf2image import convert_from_path
+    PDF_LIBRARY_AVAILABLE = True
+except ImportError:
+    PDF_LIBRARY_AVAILABLE = False
+
+print("--- Script Starting ---")
+
+# --- Step 2: Configure API Key ---
+print("-> Loading API Key...")
 load_dotenv()
 API_KEY = os.getenv("AIzaSyAjk_X7L9LWPEHvxQ7rVkEq4rylABuuAng")
 
-# If you don't use a .env file, you can uncomment the line below,
-# but DO NOT save your real key to GitHub.
-# API_KEY = "YOUR_GOOGLE_API_KEY"
-
 if not API_KEY:
-    raise ValueError("API Key not found. Please set it in a .env file or directly in the code.")
+    print("❌ ERROR: API Key not found.")
+    raise ValueError("Please set your GOOGLE_API_KEY in a .env file.")
 
 genai.configure(api_key=API_KEY)
+print("-> API Key configured successfully.")
 
 
 def prepare_document_for_gemini(file_path, mime_type):
     """
     Converts a file (PDF or image) into a list of parts for the Gemini API.
     """
+    print("-> Preparing document for Gemini...")
     # 1. Handle PDF: Convert pages to images
     if mime_type == 'application/pdf':
-        images = convert_from_path(file_path)
-        parts = []
-        for image in images:
-            # Convert PIL image to bytes
-            buffered = io.BytesIO()
-            image.save(buffered, format="JPEG")
-            img_byte = buffered.getvalue()
-            parts.append({
-                "inline_data": {
-                    "mime_type": "image/jpeg",
-                    "data": base64.b64encode(img_byte).decode('utf-8')
-                }
-            })
-        return parts
+        if not PDF_LIBRARY_AVAILABLE:
+            print("❌ ERROR: The 'pdf2image' library is not installed. Cannot process PDFs.")
+            print("Please run: pip install pdf2image")
+            return None
+        try:
+            print("-> Found a PDF. Attempting to convert pages to images...")
+            images = convert_from_path(file_path)
+            print(f"-> Successfully converted {len(images)} page(s).")
+            parts = []
+            for image in images:
+                buffered = io.BytesIO()
+                image.save(buffered, format="JPEG")
+                img_byte = buffered.getvalue()
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": base64.b64encode(img_byte).decode('utf-8')
+                    }
+                })
+            return parts
+        except Exception as e:
+            # This is the most common error point for PDFs.
+            print("\n--- ❌ PDF CONVERSION FAILED ---")
+            print(f"Error details: {e}")
+            print("\nThis error almost always means that 'Poppler', a required program for handling PDFs, is not installed or not in your system's PATH.")
+            print("Please search online for 'how to install poppler on Windows/Mac/Linux' for instructions.")
+            return None  # Return None to indicate failure
 
     # 2. Handle Images
     elif mime_type.startswith('image/'):
+        print("-> Found an image. Reading file...")
         with open(file_path, "rb") as f:
             img_byte = f.read()
         return [{
@@ -64,27 +82,24 @@ def ask_gemini_about_document(prompt, file_path, mime_type):
     if not os.path.exists(file_path):
         return f"Error: The file '{file_path}' was not found."
 
+    document_parts = prepare_document_for_gemini(file_path, mime_type)
+
+    # Check if the preparation step failed (e.g., Poppler error)
+    if document_parts is None:
+        return "Document preparation failed. Please see the error message above."
+
     try:
-        print(f"Preparing document: {file_path}...")
-        document_parts = prepare_document_for_gemini(file_path, mime_type)
-
-        print("Calling Gemini API...")
-        model = genai.GenerativeModel('gemini-1.5-flash') # Use a model that supports images
-
-        # The prompt must be the first part, followed by the document parts
+        print("-> Calling Gemini API...")
+        model = genai.GenerativeModel('gemini-1.5-flash')
         full_prompt = [prompt] + document_parts
-
         response = model.generate_content(full_prompt)
+        print("-> Got a response from Gemini!")
         return response.text
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return f"Error processing the document: {str(e)}"
+        return f"An error occurred with the Gemini API: {str(e)}"
 
 # --- HOW TO RUN THIS SCRIPT ---
-# 1. Make sure you have a test file (e.g., 'my_document.pdf' or 'my_image.png') in the same folder.
-# 2. Change the file_path and prompt variables below.
-# 3. Run the script from your terminal: python app.py
 if __name__ == '__main__':
     # --- EDIT THESE VALUES FOR YOUR TEST ---
     file_to_analyze = "test.pdf" # IMPORTANT: Change this to your file's name
@@ -92,7 +107,7 @@ if __name__ == '__main__':
     your_prompt = "Summarize this document in three bullet points."
     # -----------------------------------------
 
-    print("--- Starting Document Analysis ---")
+    print("\n--- Starting Document Analysis ---")
     result = ask_gemini_about_document(
         prompt=your_prompt,
         file_path=file_to_analyze,
